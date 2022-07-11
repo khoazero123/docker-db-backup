@@ -241,17 +241,33 @@ backup_pgsql() {
 
     if var_true "${SPLIT_DB}" ; then
         for db in ${db_names} ; do
-                pre_dbbackup
-                target=pgsql_${db}_${DB_HOST,,}_${now}.sql
-                compression
-                print_notice "Dumping PostgresSQL database: '${db}' ${compression_string}"
-                pg_dump -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} $db ${EXTRA_OPTS} | $compress_cmd > ${TEMP_LOCATION}/${target}
-                exit_code=$?
-                check_exit_code $target
-                generate_checksum
-                move_dbbackup
-                post_dbbackup $db
+            pre_dbbackup
+            target=pgsql_${db}_${DB_HOST,,}_${now}.sql
+            compression
+            print_notice "Dumping PostgresSQL database: '${db}' ${compression_string}"
+            pg_dump -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} $db ${EXTRA_OPTS} | $compress_cmd > ${TEMP_LOCATION}/${target}
+            exit_code=$?
+            check_exit_code $target
+            generate_checksum
+            move_dbbackup
+            post_dbbackup $db
         done
+        target=pgsql__globals_${DB_HOST,,}_${now}.sql
+        compression
+        pg_dumpall -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} -g ${EXTRA_OPTS} | $compress_cmd > ${TEMP_LOCATION}/${target}
+        exit_code=$?
+        check_exit_code $target
+        generate_checksum
+        move_dbbackup
+        post_dbbackup all
+        target=pgsql__schemas_${DB_HOST,,}_${now}.sql
+        compression
+        pg_dumpall -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} -s ${EXTRA_OPTS} | $compress_cmd > ${TEMP_LOCATION}/${target}
+        exit_code=$?
+        check_exit_code $target
+        generate_checksum
+        move_dbbackup
+        post_dbbackup all
     else
         print_debug "Not splitting database dumps into their own files"
         pre_dbbackup
